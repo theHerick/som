@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Som Estereo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#667eea;min-height:100vh;display:flex;justify-content:center;align-items:center;color:#fff}
+.container{background:rgba(255,255,255,.1);padding:30px;border-radius:15px;max-width:500px;width:90%}
+h1{text-align:center;margin-bottom:20px;font-size:2em}
+.info{text-align:center;margin-bottom:20px;font-size:1em}
+.sound-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px}
+.sound-button{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);padding:25px 15px;border-radius:10px;cursor:pointer;transition:all .3s;color:#fff;font-size:1em;font-weight:bold;text-align:center}
+.sound-button:hover{background:rgba(255,255,255,.3);transform:translateY(-3px)}
+.sound-button:active{transform:translateY(-1px)}
+.sound-button.playing{animation:pulse .5s;background:rgba(255,255,255,.4)}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.position-label{font-size:.85em;opacity:.8;margin-top:5px}
+.controls{margin-top:25px;text-align:center}
+.control-group{margin:12px 0}
+label{display:block;margin-bottom:5px;font-weight:bold}
+input[type="range"]{width:100%;max-width:280px}
+.value-display{display:inline-block;margin-left:10px;font-weight:bold;min-width:60px}
+.play-all{margin-top:15px;padding:12px 35px;background:rgba(255,255,255,.3);border:2px solid rgba(255,255,255,.5);border-radius:20px;color:#fff;font-size:1em;font-weight:bold;cursor:pointer;transition:all .3s}
+.play-all:hover{background:rgba(255,255,255,.4);transform:scale(1.05)}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Som Estereo</h1>
+<div class="info">Clique para ouvir o som em diferentes posicoes</div>
+<div class="sound-grid">
+<div class="sound-button" data-pan="-1"><div>Esquerda</div><div class="position-label">Pan: -1.0</div></div>
+<div class="sound-button" data-pan="1"><div>Direita</div><div class="position-label">Pan: +1.0</div></div>
+<div class="sound-button" data-pan="-0.5"><div>Esq-Centro</div><div class="position-label">Pan: -0.5</div></div>
+<div class="sound-button" data-pan="0.5"><div>Dir-Centro</div><div class="position-label">Pan: +0.5</div></div>
+</div>
+<div class="controls">
+<div class="control-group">
+<label>Frequencia: <span class="value-display" id="f">440 Hz</span></label>
+<input type="range" id="freq" min="200" max="1000" value="440" step="10">
+</div>
+<div class="control-group">
+<label>Duracao: <span class="value-display" id="d">200 ms</span></label>
+<input type="range" id="dur" min="50" max="500" value="200" step="10">
+</div>
+<button class="play-all" id="all">Tocar Sequencia</button>
+</div>
+</div>
+<script>
+let ctx=null;
+function getCtx(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();return ctx}
+function play(p,f,t){
+let c=getCtx(),o=c.createOscillator(),g=c.createGain(),s=c.createStereoPanner(),n=c.currentTime;
+o.type='sine';o.frequency.value=f;g.gain.value=0.3;s.pan.value=p;
+o.connect(g);g.connect(s);s.connect(c.destination);
+g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(0.3,n+0.01);g.gain.linearRampToValueAtTime(0,n+t/1000);
+o.start(n);o.stop(n+t/1000);
+}
+let fq=document.getElementById('freq'),dr=document.getElementById('dur');
+document.querySelectorAll('.sound-button').forEach(b=>{
+b.addEventListener('click',function(){
+let p=parseFloat(this.dataset.pan),f=parseInt(fq.value),t=parseInt(dr.value);
+play(p,f,t);
+this.classList.add('playing');
+setTimeout(()=>this.classList.remove('playing'),t);
+});
+});
+document.getElementById('all').addEventListener('click',function(){
+let bs=document.querySelectorAll('.sound-button'),f=parseInt(fq.value),t=parseInt(dr.value),dl=t+100;
+bs.forEach((b,i)=>{
+setTimeout(()=>{
+let p=parseFloat(b.dataset.pan);
+play(p,f,t);
+b.classList.add('playing');
+setTimeout(()=>b.classList.remove('playing'),t);
+},dl*i);
+});
+});
+fq.addEventListener('input',function(){document.getElementById('f').textContent=this.value+' Hz'});
+dr.addEventListener('input',function(){document.getElementById('d').textContent=this.value+' ms'});
+</script>
+</body>
+</html>
