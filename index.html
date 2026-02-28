@@ -38,6 +38,10 @@ input[type="range"]{width:100%;max-width:280px}
 </div>
 <div class="controls">
 <div class="control-group">
+<label>Volume: <span class="value-display" id="v">30%</span></label>
+<input type="range" id="vol" min="0" max="100" value="30" step="1">
+</div>
+<div class="control-group">
 <label>Duracao: <span class="value-display" id="d">200 ms</span></label>
 <input type="range" id="dur" min="50" max="500" value="200" step="10">
 </div>
@@ -49,31 +53,47 @@ let ctx=null;
 function getCtx(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();return ctx}
 function play(p,f,t){
 let c=getCtx(),o=c.createOscillator(),g=c.createGain(),s=c.createStereoPanner(),n=c.currentTime;
-o.type='sine';o.frequency.value=f;g.gain.value=0.3;s.pan.value=p;
+let vol=parseInt(document.getElementById('vol').value)/100;
+o.type='sine';o.frequency.value=f;g.gain.value=vol;s.pan.value=p;
 o.connect(g);g.connect(s);s.connect(c.destination);
-g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(0.3,n+0.01);g.gain.linearRampToValueAtTime(0,n+t/1000);
+g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(vol,n+0.01);g.gain.linearRampToValueAtTime(0,n+t/1000);
 o.start(n);o.stop(n+t/1000);
 }
 let dr=document.getElementById('dur');
-let intervals=new Map();
+let activeButtons=new Set();
+let globalInterval=null;
+function startGlobalBeep(){
+if(!globalInterval){
+globalInterval=setInterval(()=>{
+activeButtons.forEach(btn=>{
+let p=parseFloat(btn.dataset.pan),f=parseInt(btn.dataset.freq),t=parseInt(dr.value);
+play(p,f,t);
+btn.classList.add('playing');
+setTimeout(()=>btn.classList.remove('playing'),t);
+});
+},500);
+}
+}
+function stopGlobalBeep(){
+if(globalInterval&&activeButtons.size===0){
+clearInterval(globalInterval);
+globalInterval=null;
+}
+}
 document.querySelectorAll('.sound-button').forEach(b=>{
 b.addEventListener('click',function(){
 if(this.classList.contains('active')){
-clearInterval(intervals.get(this));
-intervals.delete(this);
+activeButtons.delete(this);
 this.classList.remove('active');
+stopGlobalBeep();
 }else{
-let p=parseFloat(this.dataset.pan),f=parseInt(this.dataset.freq);
+let p=parseFloat(this.dataset.pan),f=parseInt(this.dataset.freq),t=parseInt(dr.value);
 this.classList.add('active');
-let beep=()=>{
-let t=parseInt(dr.value);
+activeButtons.add(this);
 play(p,f,t);
 this.classList.add('playing');
 setTimeout(()=>this.classList.remove('playing'),t);
-};
-beep();
-let id=setInterval(beep,500);
-intervals.set(this,id);
+startGlobalBeep();
 }
 });
 });
@@ -89,6 +109,7 @@ setTimeout(()=>b.classList.remove('playing'),t);
 });
 });
 dr.addEventListener('input',function(){document.getElementById('d').textContent=this.value+' ms'});
+document.getElementById('vol').addEventListener('input',function(){document.getElementById('v').textContent=this.value+'%'});
 </script>
 </body>
 </html>
