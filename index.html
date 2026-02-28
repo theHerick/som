@@ -15,6 +15,7 @@ h1{text-align:center;margin-bottom:20px;font-size:2em}
 .sound-button:hover{background:rgba(255,255,255,.3);transform:translateY(-3px)}
 .sound-button:active{transform:translateY(-1px)}
 .sound-button.playing{animation:pulse .5s;background:rgba(255,255,255,.4)}
+.sound-button.active{background:rgba(76,175,80,.5);border-color:rgba(76,175,80,.8);box-shadow:0 0 20px rgba(76,175,80,.6)}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 .position-label{font-size:.85em;opacity:.8;margin-top:5px}
 .controls{margin-top:25px;text-align:center}
@@ -29,7 +30,7 @@ input[type="range"]{width:100%;max-width:280px}
 <body>
 <div class="container">
 <h1>Som Estereo</h1>
-<div class="info">Clique para ouvir o som em diferentes posicoes</div>
+<div class="info">Clique para ativar/desativar - Pode ativar varios ao mesmo tempo</div>
 <div class="sound-grid">
 <div class="sound-button" data-pan="-1" data-freq="300"><div>Esquerda</div><div class="position-label">300 Hz</div></div>
 <div class="sound-button" data-pan="0" data-freq="500"><div>Centro</div><div class="position-label">500 Hz</div></div>
@@ -54,12 +55,26 @@ g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(0.3,n+0.01);g.gain.lin
 o.start(n);o.stop(n+t/1000);
 }
 let dr=document.getElementById('dur');
+let intervals=new Map();
 document.querySelectorAll('.sound-button').forEach(b=>{
 b.addEventListener('click',function(){
-let p=parseFloat(this.dataset.pan),f=parseInt(this.dataset.freq),t=parseInt(dr.value);
+if(this.classList.contains('active')){
+clearInterval(intervals.get(this));
+intervals.delete(this);
+this.classList.remove('active');
+}else{
+let p=parseFloat(this.dataset.pan),f=parseInt(this.dataset.freq);
+this.classList.add('active');
+let beep=()=>{
+let t=parseInt(dr.value);
 play(p,f,t);
 this.classList.add('playing');
 setTimeout(()=>this.classList.remove('playing'),t);
+};
+beep();
+let id=setInterval(beep,500);
+intervals.set(this,id);
+}
 });
 });
 document.getElementById('all').addEventListener('click',function(){
